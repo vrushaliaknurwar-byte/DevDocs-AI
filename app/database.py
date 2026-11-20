@@ -53,9 +53,16 @@ def init_db(max_wait_seconds: int = 30) -> None:
         try:
             with engine.connect() as conn:
                 if engine.dialect.name == "postgresql":
-                    conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-                    conn.commit()
-                    logger.info("Ensured PostgreSQL vector extension exists.")
+                    try:
+                        conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                        conn.commit()
+                        logger.info("Ensured PostgreSQL vector extension exists.")
+                    except Exception as ext_err:
+                        logger.error(
+                            f"CRITICAL: Failed to create pgvector extension 'vector': {ext_err}. "
+                            "Please ensure your PostgreSQL database supports pgvector."
+                        )
+                        raise
 
             # Import models so Base has them registered
             import app.models  # noqa: F401

@@ -151,9 +151,19 @@ Open **[http://localhost:8000](http://localhost:8000)** in your browser. The red
 
 ## Deploy on Render
 
-DevDocs AI is configured for deployment on [Render](https://render.com) as a containerized **Docker Web Service** with PostgreSQL + `pgvector`.
+### One-Click Deploy with Render Blueprint
 
-### 1. Create PostgreSQL Database with pgvector
+You can deploy the complete stack (FastAPI Docker Web Service + PostgreSQL with `pgvector`) in one click using the included [`render.yaml`](render.yaml) blueprint:
+
+1. In the [Render Dashboard](https://dashboard.render.com), click **New +** &rarr; **Blueprint**.
+2. Select this repository (`DevDocs-AI`).
+3. Render will parse `render.yaml` and configure both the `devdocs-db` database and `devdocs-ai` web service.
+4. Paste your **`GEMINI_API_KEY`** when prompted for the secret environment variable.
+5. Click **Apply** &mdash; Render will provision the database, build the Docker container, run startup migrations with pgvector, and start your service!
+
+---
+
+### Manual Deployment Steps (Alternative)
 1. In the Render Dashboard, click **New +** &rarr; **PostgreSQL**.
 2. Give your database a name (e.g. `devdocs-db`), choose a region, and click **Create Database**.
 3. Once provisioned, copy the **Internal Database URL** (for lowest latency within Render) or **External Database URL**.
