@@ -1,0 +1,36 @@
+# Environments & Secrets
+.env
+.env.*
+!.env.example
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Testing & Caching
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Dependencies
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# App specific caches
+repos_cache/
+temp_clones/

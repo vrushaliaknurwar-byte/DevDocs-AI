@@ -1,0 +1,2053 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevDocs AI — Understand any GitHub repository</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & CSS Variables ──────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f8f6f2;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #fff 0%, #f8f6f2 70%);
+  --surface: #ffffff;
+  --surface-alt: #f3f0e8;
+  --surface-subtle: #fcfbf9;
+  --border: #e7e3da;
+  --border-focus: #111110;
+  --text-main: #141312;
+  --text-muted: #6e6a63;
+  --text-light: #9c978f;
+  
+  --accent: #e8591a;
+  --accent-hover: #cf4a10;
+  --accent-soft: rgba(232, 89, 26, 0.08);
+
+  --badge-ready-bg: #edf7f1;
+  --badge-ready-text: #278a4e;
+  --badge-indexing-bg: #f2f3f5;
+  --badge-indexing-text: #59616e;
+  --badge-failed-bg: #fdf2f2;
+  --badge-failed-text: #dc3545;
+
+  --code-bg: #1c1b18;
+  --code-text: #f5f3ee;
+  
+  --shadow-sm: 0 1px 3px rgba(20, 19, 18, 0.03);
+  --shadow-md: 0 4px 20px rgba(20, 19, 18, 0.04), 0 1px 3px rgba(20, 19, 18, 0.02);
+  --shadow-lg: 0 12px 32px rgba(20, 19, 18, 0.06);
+
+  --font-serif: "Newsreader", "Instrument Serif", Georgia, serif;
+  --font-italic-serif: "Instrument Serif", "Newsreader", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Consolas, monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+}
+
+body.dark-mode {
+  --bg: #131211;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #1c1b18 0%, #131211 75%);
+  --surface: #1c1a17;
+  --surface-alt: #24221e;
+  --surface-subtle: #191815;
+  --border: #2e2b25;
+  --border-focus: #f5f3ee;
+  --text-main: #f3efe6;
+  --text-muted: #9e998e;
+  --text-light: #6a665d;
+
+  --accent: #f26427;
+  --accent-hover: #ff7e47;
+  --accent-soft: rgba(242, 100, 39, 0.15);
+
+  --badge-ready-bg: rgba(39, 138, 78, 0.15);
+  --badge-ready-text: #4ade80;
+  --badge-indexing-bg: rgba(150, 150, 150, 0.15);
+  --badge-indexing-text: #cbd5e1;
+  --badge-failed-bg: rgba(220, 53, 69, 0.15);
+  --badge-failed-text: #f87171;
+
+  --code-bg: #0d0c0b;
+  --code-text: #f5f3ee;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 36px rgba(0, 0, 0, 0.5);
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-main);
+  min-height: 100vh;
+  line-height: 1.6;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  overflow-x: hidden;
+}
+
+/* ── Top Navigation ─────────────────────────────────────── */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(248, 246, 242, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.25s, border-color 0.25s;
+}
+body.dark-mode .top-nav {
+  background: rgba(19, 18, 17, 0.85);
+}
+.nav-scrolled {
+  border-bottom-color: var(--border);
+}
+
+.nav-container {
+  max-width: 1020px;
+  margin: 0 auto;
+  padding: 1.1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  color: var(--text-main);
+}
+.brand-icon {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+.brand-name {
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  list-style: none;
+}
+.nav-link {
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 0.25rem 0;
+  position: relative;
+  transition: color 0.15s;
+}
+.nav-link:hover {
+  color: var(--text-main);
+}
+.nav-link.active {
+  color: var(--text-main);
+}
+.nav-link.active::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.theme-toggle-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  border-radius: var(--radius-full);
+  padding: 0.45rem 0.65rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-sm);
+}
+.theme-toggle-btn:hover {
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
+}
+.theme-pill-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #111;
+  transition: background 0.2s, transform 0.2s;
+}
+body.dark-mode .theme-pill-dot {
+  background: #f5f3ee;
+}
+
+/* ── Main Container ─────────────────────────────────────── */
+.main-wrapper {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 2.8rem 1.5rem 5rem;
+}
+
+/* ── Hero Section ───────────────────────────────────────── */
+.hero-section {
+  text-align: center;
+  margin-bottom: 2.6rem;
+}
+.hero-title {
+  font-family: var(--font-serif);
+  font-size: 3.8rem;
+  line-height: 1.1;
+  font-weight: 400;
+  color: var(--text-main);
+  letter-spacing: -0.025em;
+  margin-bottom: 1rem;
+}
+.hero-title em {
+  font-family: var(--font-italic-serif);
+  font-style: italic;
+  color: var(--accent);
+  font-weight: 400;
+  padding-right: 0.05em;
+}
+.hero-subtitle {
+  color: var(--text-muted);
+  font-size: 1.12rem;
+  max-width: 580px;
+  margin: 0 auto 1.6rem;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+/* ── Example Chips ──────────────────────────────────────── */
+.example-chips {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+.chip-example {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  border-radius: var(--radius-full);
+  padding: 0.4rem 0.95rem;
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+}
+.chip-example:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.chip-example svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+/* ── Search Input Bar ───────────────────────────────────── */
+.search-form {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 0.45rem 0.5rem 0.45rem 1.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-md);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  max-width: 740px;
+  margin: 0 auto 2.5rem;
+}
+.search-form:focus-within {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow-lg);
+}
+.search-icon {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.search-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 1.05rem;
+  font-family: var(--font-sans);
+  outline: none;
+  min-width: 0;
+}
+.search-input::placeholder {
+  color: var(--text-light);
+}
+.btn-explain {
+  background: #111110;
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0.8rem 1.6rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.15s, transform 0.15s, opacity 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+body.dark-mode .btn-explain {
+  background: #f5f3ee;
+  color: #111110;
+}
+.btn-explain:hover:not(:disabled) {
+  background: var(--accent);
+  color: #ffffff;
+  transform: translateX(1px);
+}
+.btn-explain:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── 4-Step Stepper ─────────────────────────────────────── */
+.stepper-container {
+  max-width: 680px;
+  margin: 0 auto 3rem;
+  position: relative;
+  display: none;
+}
+.stepper-container.visible {
+  display: block;
+}
+.stepper-track {
+  position: absolute;
+  top: 22px;
+  left: 45px;
+  right: 45px;
+  height: 2px;
+  background: var(--border);
+  z-index: 1;
+}
+.stepper-progress-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+.stepper-steps {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+}
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 120px;
+}
+.step-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.65rem;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+}
+.step-circle svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+.step-label {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  line-height: 1.3;
+  transition: color 0.2s;
+}
+.step-detail {
+  font-size: 0.72rem;
+  color: var(--accent);
+  margin-top: 0.2rem;
+  font-family: var(--font-mono);
+}
+
+/* Stepper States */
+.step-item.active .step-circle {
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  animation: pulse-ring 2s infinite;
+}
+.step-item.active .step-label {
+  color: var(--text-main);
+  font-weight: 600;
+}
+.step-item.completed .step-circle {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.step-item.completed .step-label {
+  color: var(--text-main);
+}
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(232, 89, 26, 0.3); }
+  70% { box-shadow: 0 0 0 8px rgba(232, 89, 26, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(232, 89, 26, 0); }
+}
+
+/* Error card */
+.error-card {
+  display: none;
+  max-width: 740px;
+  margin: 0 auto 2rem;
+  background: var(--badge-failed-bg);
+  border: 1px solid var(--badge-failed-text);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.4rem;
+  color: var(--badge-failed-text);
+  font-size: 0.95rem;
+  align-items: center;
+  gap: 0.8rem;
+  box-shadow: var(--shadow-sm);
+  animation: fade-in 0.25s ease;
+}
+.error-card.visible {
+  display: flex;
+}
+.error-icon {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+}
+
+/* ── Content Cards ──────────────────────────────────────── */
+.card-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2.2rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  animation: fade-up 0.4s ease;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+.card-header-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-title {
+  font-family: var(--font-serif);
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: -0.015em;
+}
+
+/* ── Overview Layout with Illustration ──────────────────── */
+.overview-layout {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 2rem;
+  align-items: start;
+}
+@media (max-width: 768px) {
+  .overview-layout {
+    grid-template-columns: 1fr;
+  }
+  .overview-illustration {
+    display: none !important;
+  }
+}
+.overview-text {
+  font-size: 1.05rem;
+  color: var(--text-main);
+}
+.overview-illustration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0;
+}
+.cat-svg {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+  filter: drop-shadow(0 12px 24px rgba(20, 19, 18, 0.08));
+}
+
+/* ── How to Run Dropdown ─────────────────────────────────── */
+.how-to-run {
+  margin-top: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  overflow: hidden;
+  transition: all 0.2s;
+}
+.how-to-run summary {
+  padding: 0.85rem 1.15rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  user-select: none;
+}
+.how-to-run summary::-webkit-details-marker {
+  display: none;
+}
+.how-to-run summary span.arrow {
+  display: inline-block;
+  transition: transform 0.2s ease;
+  font-size: 0.8rem;
+}
+.how-to-run[open] summary span.arrow {
+  transform: rotate(90deg);
+}
+.how-to-run-content {
+  padding: 0.2rem 1.15rem 1.15rem;
+}
+.code-box {
+  position: relative;
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.88rem;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+.btn-copy-code {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 6px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.72rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-copy-code:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ── Markdown Output Formatting ─────────────────────────── */
+.md-content {
+  font-family: var(--font-serif);
+  font-size: 1.08rem;
+  line-height: 1.7;
+  color: var(--text-main);
+}
+.md-content h1, .md-content h2, .md-content h3 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  margin: 1.2rem 0 0.5rem;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+.md-content h1 { font-size: 1.45rem; }
+.md-content h2 { font-size: 1.25rem; }
+.md-content h3 { font-size: 1.12rem; }
+.md-content p {
+  margin: 0.6rem 0;
+}
+.md-content ul, .md-content ol {
+  margin: 0.5rem 0 0.8rem 1.4rem;
+}
+.md-content li {
+  margin: 0.3rem 0;
+}
+.md-content code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--surface-alt);
+  padding: 0.15em 0.45em;
+  border-radius: 5px;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+}
+.md-content pre {
+  position: relative;
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: var(--radius-sm);
+  padding: 1.1rem 1.3rem;
+  margin: 0.8rem 0;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+}
+.md-content pre code {
+  background: transparent;
+  color: inherit;
+  border: none;
+  padding: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+.md-content blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.9rem;
+  margin: 0.8rem 0;
+  color: var(--text-muted);
+  font-style: italic;
+}
+.md-content strong {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* ── Citations Chips ────────────────────────────────────── */
+.citations-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+.citation-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 0.28rem 0.65rem;
+  border-radius: var(--radius-full);
+  transition: all 0.15s;
+}
+.citation-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.citation-chip svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+/* ── Chat Section ───────────────────────────────────────── */
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 0.4rem;
+}
+.chat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.chat-row.user-row {
+  justify-content: flex-end;
+}
+.chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+.chat-avatar.assistant-avatar {
+  color: var(--accent);
+  background: var(--surface);
+}
+.chat-bubble {
+  max-width: 82%;
+  padding: 1.05rem 1.3rem;
+  border-radius: var(--radius-md);
+  position: relative;
+}
+.user-bubble {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  border-top-right-radius: 4px;
+  font-size: 0.98rem;
+  font-family: var(--font-sans);
+}
+.assistant-bubble {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-top-left-radius: 4px;
+  font-size: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Typing indicator */
+.typing-bubble {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.85rem 1.15rem;
+}
+.typing-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.4;
+  animation: typing-bounce 1.4s infinite ease-in-out both;
+}
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.3; }
+  40% { transform: scale(1.15); opacity: 1; }
+}
+
+/* Chat Input Bar */
+.chat-form {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 0.35rem 0.45rem 0.35rem 1.25rem;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s;
+}
+.chat-form:focus-within {
+  border-color: var(--border-focus);
+}
+.chat-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 0.98rem;
+  font-family: var(--font-sans);
+  outline: none;
+}
+.chat-input::placeholder {
+  color: var(--text-light);
+}
+.btn-send {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #111110;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.15s;
+}
+body.dark-mode .btn-send {
+  background: #f5f3ee;
+  color: #111110;
+}
+.btn-send:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+  transform: scale(1.05);
+}
+.btn-send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.btn-send svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+}
+
+/* ── Recent Repos Section ───────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 3.5rem 0 1.25rem;
+}
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.section-title {
+  font-family: var(--font-serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--text-main);
+  letter-spacing: -0.01em;
+}
+.view-all-link {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: color 0.15s;
+  cursor: pointer;
+}
+.view-all-link:hover {
+  color: var(--accent);
+}
+
+.repos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.1rem;
+}
+@media (max-width: 680px) {
+  .repos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.repo-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.15rem 1.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+}
+.repo-card:hover {
+  border-color: var(--border-focus);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.repo-card-left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+.repo-gh-icon {
+  width: 22px;
+  height: 22px;
+  color: var(--text-main);
+  flex-shrink: 0;
+}
+.repo-gh-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+.repo-info {
+  min-width: 0;
+}
+.repo-name-text {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+.repo-meta-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  margin-top: 0.15rem;
+}
+.repo-card-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+.status-pill {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-full);
+  text-transform: capitalize;
+}
+.status-pill.ready {
+  background: var(--badge-ready-bg);
+  color: var(--badge-ready-text);
+}
+.status-pill.indexing, .status-pill.pending {
+  background: var(--badge-indexing-bg);
+  color: var(--badge-indexing-text);
+}
+.status-pill.failed {
+  background: var(--badge-failed-bg);
+  color: var(--badge-failed-text);
+}
+.repo-arrow {
+  color: var(--text-light);
+  font-size: 1.1rem;
+  transition: transform 0.15s, color 0.15s;
+}
+.repo-card:hover .repo-arrow {
+  color: var(--accent);
+  transform: translateX(2px);
+}
+.empty-repos-msg {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 2.5rem;
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+}
+
+/* ── About, Features & FAQ Sections ─────────────────────── */
+.info-section {
+  padding-top: 4rem;
+}
+.info-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 2.2rem;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 2rem;
+}
+.info-card h3 {
+  font-family: var(--font-serif);
+  font-size: 1.55rem;
+  font-weight: 600;
+  margin-bottom: 0.8rem;
+  color: var(--text-main);
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+@media (max-width: 768px) {
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.feature-box {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1.4rem;
+}
+.feature-box-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.65rem;
+}
+.feature-box h4 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  color: var(--text-main);
+}
+.feature-box p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-top: 1.2rem;
+}
+.faq-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  overflow: hidden;
+}
+.faq-item summary {
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-main);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item p {
+  padding: 0 1.25rem 1.15rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* ── Footer ─────────────────────────────────────────────── */
+.site-footer {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  padding: 3rem 1.5rem 3.5rem;
+  margin-top: 4rem;
+}
+.footer-container {
+  max-width: 1020px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.footer-tagline {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.footer-links {
+  display: flex;
+  gap: 1.7rem;
+  list-style: none;
+}
+.footer-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.15s;
+}
+.footer-link:hover {
+  color: var(--accent);
+}
+.footer-socials {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.social-icon {
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, transform 0.15s;
+}
+.social-icon:hover {
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+.social-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+/* ── Animations ─────────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Mobile Tweaks ──────────────────────────────────────── */
+@media (max-width: 600px) {
+  .hero-title {
+    font-size: 2.7rem;
+  }
+  .nav-links {
+    display: none;
+  }
+  .search-form {
+    padding: 0.4rem 0.4rem 0.4rem 1rem;
+  }
+  .search-input {
+    font-size: 0.95rem;
+  }
+  .btn-explain {
+    padding: 0.7rem 1.1rem;
+    font-size: 0.85rem;
+  }
+  .card-panel {
+    padding: 1.4rem;
+  }
+  .footer-container {
+    flex-direction: column;
+    text-align: center;
+  }
+  .footer-brand {
+    align-items: center;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- Top Navigation -->
+<nav class="top-nav" id="topNav">
+  <div class="nav-container">
+    <a href="#hero" class="brand-logo">
+      <div class="brand-icon">
+        <!-- Orange open book SVG -->
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+        </svg>
+      </div>
+      <span class="brand-name">DevDocs AI</span>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="#hero" class="nav-link active" onclick="setActiveNav(this)">Home</a></li>
+      <li><a href="#about" class="nav-link" onclick="setActiveNav(this)">About</a></li>
+      <li><a href="#features" class="nav-link" onclick="setActiveNav(this)">Features</a></li>
+      <li><a href="#faqs" class="nav-link" onclick="setActiveNav(this)">FAQs</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <button class="theme-toggle-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle Light/Dark Theme">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <span class="theme-pill-dot"></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Container -->
+<div class="main-wrapper">
+
+  <!-- Hero Section -->
+  <section class="hero-section" id="hero">
+    <h1 class="hero-title">
+      Understand any<br>
+      <em>GitHub</em> repository
+    </h1>
+    <p class="hero-subtitle">
+      Paste a repo link and get a clear, beginner-friendly explanation — with the power to ask follow-up questions.
+    </p>
+
+    <!-- Example Chips -->
+    <div class="example-chips">
+      <button class="chip-example" onclick="fillExample('https://github.com/vercel/next.js')">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        vercel/next.js
+      </button>
+      <button class="chip-example" onclick="fillExample('https://github.com/facebook/react')">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        facebook/react
+      </button>
+      <button class="chip-example" onclick="fillExample('https://github.com/microsoft/typescript')">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        microsoft/typescript
+      </button>
+    </div>
+
+    <!-- URL Input Bar -->
+    <div class="search-form">
+      <div class="search-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      </div>
+      <input type="url" id="repoInput" class="search-input" placeholder="https://github.com/owner/repo" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter') handleExplainClick()">
+      <button id="explainBtn" class="btn-explain" onclick="handleExplainClick()">
+        Explain this repo &rarr;
+      </button>
+    </div>
+  </section>
+
+  <!-- Stepper Section (4-step progress) -->
+  <div class="stepper-container" id="stepperContainer">
+    <div class="stepper-track">
+      <div class="stepper-progress-line" id="stepperLine"></div>
+    </div>
+    <div class="stepper-steps">
+      <!-- Step 1 -->
+      <div class="step-item" id="step1">
+        <div class="step-circle">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        </div>
+        <div class="step-label">Downloading<br>code</div>
+      </div>
+      <!-- Step 2 -->
+      <div class="step-item" id="step2">
+        <div class="step-circle">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+        </div>
+        <div class="step-label">Reading<br>files</div>
+      </div>
+      <!-- Step 3 -->
+      <div class="step-item" id="step3">
+        <div class="step-circle">
+          <svg viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+        </div>
+        <div class="step-label">Embedding<br>chunks</div>
+        <div class="step-detail" id="step3Detail"></div>
+      </div>
+      <!-- Step 4 -->
+      <div class="step-item" id="step4">
+        <div class="step-circle">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <div class="step-label">Ready</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Card -->
+  <div class="error-card" id="errorCard">
+    <div class="error-icon">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    </div>
+    <div id="errorText">An error occurred while indexing this repository.</div>
+  </div>
+
+  <!-- Overview Card -->
+  <div class="card-panel" id="overviewCard" style="display: none;">
+    <div class="card-header">
+      <div class="card-header-icon">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+        </svg>
+      </div>
+      <h2 class="card-title">Overview</h2>
+    </div>
+
+    <div class="overview-layout">
+      <div>
+        <div id="overviewBody" class="md-content">
+          <!-- Markdown overview content injected here -->
+        </div>
+
+        <!-- Collapsible How to Run -->
+        <details class="how-to-run" id="howToRunBox">
+          <summary>
+            <span class="arrow">&#9654;</span>
+            <span>How to run:</span>
+          </summary>
+          <div class="how-to-run-content">
+            <div class="code-box">
+              <button class="btn-copy-code" onclick="copyCode(this)">Copy</button>
+              <pre><code id="howToRunCode">git clone https://github.com/owner/repo.git
+cd repo
+npm install && npm run dev</code></pre>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Soft Decorative GitHub Cat Illustration -->
+      <div class="overview-illustration">
+        <svg class="cat-svg" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="catGrad" cx="40%" cy="35%" r="65%">
+              <stop offset="0%" stop-color="#9ea5b0"/>
+              <stop offset="45%" stop-color="#646b77"/>
+              <stop offset="100%" stop-color="#3c414a"/>
+            </radialGradient>
+            <radialGradient id="haloGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#f8a170" stop-opacity="0.2"/>
+              <stop offset="100%" stop-color="#f8a170" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="8" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+
+          <!-- Ambient soft aura -->
+          <circle cx="100" cy="100" r="85" fill="url(#haloGrad)"/>
+
+          <!-- Orbital planetary rings -->
+          <ellipse cx="100" cy="100" rx="90" ry="32" stroke="#d5d0c7" stroke-width="1.2" stroke-dasharray="3 4" transform="rotate(-18 100 100)" opacity="0.6"/>
+          <ellipse cx="100" cy="100" rx="78" ry="24" stroke="#e8591a" stroke-width="0.9" opacity="0.4" transform="rotate(22 100 100)"/>
+
+          <!-- 4-point Sparkle Star -->
+          <path d="M168 44 C168 52 173 57 181 57 C173 57 168 62 168 70 C168 62 163 57 155 57 C163 57 168 52 168 44 Z" fill="#e8591a" opacity="0.95"/>
+          <circle cx="168" cy="57" r="1.5" fill="#fff"/>
+
+          <!-- Soft Shadow Ground -->
+          <ellipse cx="100" cy="162" rx="42" ry="7" fill="rgba(20,19,18,0.12)" filter="blur(3px)"/>
+
+          <!-- Stylized Cat Body Silhouette (Turned with curved tail) -->
+          <g id="catSilhouette">
+            <!-- Tail -->
+            <path d="M72 142 C55 140 45 130 52 118 C58 108 70 115 65 125 C62 131 68 135 76 136 Z" fill="url(#catGrad)"/>
+            <!-- Body -->
+            <path d="M80 156 C74 135 75 110 88 95 C98 84 116 84 125 96 C136 111 138 135 132 156 C122 160 90 160 80 156 Z" fill="url(#catGrad)"/>
+            <!-- Head & Cute Ears -->
+            <path d="M78 84 C70 58 75 50 82 58 C90 66 102 64 112 64 C122 64 134 66 142 58 C149 50 154 58 146 84 C152 100 138 112 112 112 C86 112 72 100 78 84 Z" fill="url(#catGrad)"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Card -->
+  <div class="card-panel" id="chatCard" style="display: none;">
+    <div class="card-header">
+      <div class="card-header-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+      </div>
+      <h3 style="font-family: var(--font-sans); font-size: 1.05rem; font-weight: 600; color: var(--text-main);">
+        Ask anything about this repo...
+      </h3>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      <!-- Chat bubbles inserted dynamically -->
+    </div>
+
+    <!-- Chat input form -->
+    <div class="chat-form">
+      <input type="text" id="chatInput" class="chat-input" placeholder="Ask a follow-up question..." onkeydown="if(event.key==='Enter') handleChatSend()">
+      <button class="btn-send" id="chatSendBtn" onclick="handleChatSend()" title="Send Question">
+        <svg viewBox="0 0 24 24">
+          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Recent Repos Section -->
+  <section class="recent-repos-section" id="recentReposSection">
+    <div class="section-header">
+      <div class="section-title-wrap">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        <h2 class="section-title">Recent repos</h2>
+      </div>
+      <a class="view-all-link" id="viewAllBtn" onclick="toggleViewAll()">View all &rarr;</a>
+    </div>
+
+    <div class="repos-grid" id="reposGrid">
+      <!-- Loaded dynamically via GET /repos -->
+      <div class="empty-repos-msg">Loading ingested repositories...</div>
+    </div>
+  </section>
+
+  <!-- About Section for Nav Target -->
+  <section class="info-section" id="about">
+    <div class="info-card">
+      <h3>About DevDocs AI</h3>
+      <p style="color: var(--text-muted); font-size: 1.05rem; line-height: 1.7;">
+        DevDocs AI turns complex codebases into clear, interactive architectural documentation.
+        Using native AST and Tree-Sitter grammars, it parses Python, JavaScript, and TypeScript into syntactic functions and classes, embeds them into a 768-dimensional vector space with Google Gemini, and performs high-speed semantic retrieval directly backed by PostgreSQL and <code>pgvector</code>.
+      </p>
+    </div>
+  </section>
+
+  <!-- Features Section for Nav Target -->
+  <section class="info-section" id="features">
+    <div class="info-card">
+      <h3>Features</h3>
+      <div class="features-grid">
+        <div class="feature-box">
+          <div class="feature-box-icon">⚡</div>
+          <h4>Shallow Ingestion</h4>
+          <p>Lightweight depth-1 cloning that filters out binaries and node_modules in seconds.</p>
+        </div>
+        <div class="feature-box">
+          <div class="feature-box-icon">🧠</div>
+          <h4>AST Chunking</h4>
+          <p>Accurate class and function boundaries parsed with language-native grammar.</p>
+        </div>
+        <div class="feature-box">
+          <div class="feature-box-icon">🎯</div>
+          <h4>Verified Citations</h4>
+          <p>Every answer links straight to the source file with 1-indexed start and end line ranges.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQs Section for Nav Target -->
+  <section class="info-section" id="faqs">
+    <div class="info-card">
+      <h3>Frequently Asked Questions</h3>
+      <div class="faq-list">
+        <details class="faq-item">
+          <summary>What languages does DevDocs AI currently parse?</summary>
+          <p>In Phase 1, DevDocs AI features syntax-aware chunking for Python (.py) using the native <code>ast</code> engine and JavaScript/TypeScript (.js, .jsx, .ts, .tsx, .mjs, .cjs) using <code>tree-sitter</code>.</p>
+        </details>
+        <details class="faq-item">
+          <summary>How does the citation system work?</summary>
+          <p>When you ask a question, your query is embedded with Gemini, matching the top 5 code chunks in PostgreSQL via pgvector cosine distance. Each chunk preserves its exact file path and line numbers, returned as citation chips.</p>
+        </details>
+        <details class="faq-item">
+          <summary>Are my private repositories supported?</summary>
+          <p>Phase 1 supports any public GitHub repository URL. Future phases will introduce personal access tokens and OAuth for private organization repos.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <div style="color: var(--accent);">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+          </svg>
+        </div>
+        <span style="font-family: var(--font-serif); font-size: 1.25rem; font-weight: 600;">DevDocs AI</span>
+      </div>
+      <span class="footer-tagline">Learn. Explore. Build.</span>
+    </div>
+
+    <ul class="footer-links">
+      <li><a href="#about" class="footer-link">About</a></li>
+      <li><a href="#features" class="footer-link">Features</a></li>
+      <li><a href="#" class="footer-link">Privacy</a></li>
+      <li><a href="#" class="footer-link">Contact</a></li>
+    </ul>
+
+    <div class="footer-socials">
+      <a href="#" class="social-icon" title="GitHub">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      </a>
+      <a href="#" class="social-icon" title="X (Twitter)">
+        <svg viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+      </a>
+      <a href="#" class="social-icon" title="YouTube">
+        <svg viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+      </a>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ── State (Memory-only theme & polling) ────────────────── */
+let currentTheme = 'light';
+let activeRepoId = null;
+let activeRepoData = null;
+let pollTimer = null;
+let recentReposList = [];
+let showAllRecent = false;
+
+const OVERVIEW_QUESTION = "Explain this repository for a beginner: what it does, the main folders and files, how the pieces connect, and how to run it.";
+
+/* ── DOM Elements ───────────────────────────────────────── */
+const $repoInput = document.getElementById('repoInput');
+const $explainBtn = document.getElementById('explainBtn');
+const $stepperContainer = document.getElementById('stepperContainer');
+const $stepperLine = document.getElementById('stepperLine');
+const $step1 = document.getElementById('step1');
+const $step2 = document.getElementById('step2');
+const $step3 = document.getElementById('step3');
+const $step4 = document.getElementById('step4');
+const $step3Detail = document.getElementById('step3Detail');
+const $errorCard = document.getElementById('errorCard');
+const $errorText = document.getElementById('errorText');
+const $overviewCard = document.getElementById('overviewCard');
+const $overviewBody = document.getElementById('overviewBody');
+const $howToRunBox = document.getElementById('howToRunBox');
+const $howToRunCode = document.getElementById('howToRunCode');
+const $chatCard = document.getElementById('chatCard');
+const $chatMessages = document.getElementById('chatMessages');
+const $chatInput = document.getElementById('chatInput');
+const $chatSendBtn = document.getElementById('chatSendBtn');
+const $reposGrid = document.getElementById('reposGrid');
+const $viewAllBtn = document.getElementById('viewAllBtn');
+
+/* ── Theme Toggle (Memory only, no localStorage) ────────── */
+function toggleTheme() {
+  currentTheme = (currentTheme === 'light') ? 'dark' : 'light';
+  if (currentTheme === 'dark') {
+    document.body.classList.add('dark-mode');
+  } else {
+    document.body.classList.remove('dark-mode');
+  }
+}
+
+/* ── Navigation Active Indicator ────────────────────────── */
+function setActiveNav(el) {
+  document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+  el.classList.add('active');
+}
+
+window.addEventListener('scroll', () => {
+  const nav = document.getElementById('topNav');
+  if (window.scrollY > 15) {
+    nav.classList.add('nav-scrolled');
+  } else {
+    nav.classList.remove('nav-scrolled');
+  }
+});
+
+/* ── Markdown Parser with Strict HTML Escaping ──────────── */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function parseMarkdown(src) {
+  if (!src) return '';
+  // 1. First escape all raw HTML to strictly prevent XSS
+  let text = escapeHtml(src);
+
+  // 2. Fenced code blocks with copy button
+  text = text.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+    return `<div class="code-box" style="margin: 0.9rem 0;">
+      <button class="btn-copy-code" onclick="copyCode(this)">Copy</button>
+      <pre><code class="language-${lang || 'text'}">${code.trim()}</code></pre>
+    </div>`;
+  });
+
+  // 3. Inline code
+  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // 4. Headings
+  text = text.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+  text = text.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+  text = text.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+  // 5. Bold & Italic
+  text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+  // 6. Blockquotes
+  text = text.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>');
+
+  // 7. Unordered lists
+  text = text.replace(/^\s*[\-\*]\s+(.*$)/gim, '<li>$1</li>');
+  text = text.replace(/((?:<li>.*?<\/li>\s*)+)/gim, '<ul>$1</ul>');
+
+  // 8. Ordered lists
+  text = text.replace(/^\s*\d+\.\s+(.*$)/gim, '<li>$1</li>');
+
+  // 9. Paragraphs (wrap lines that are not inside HTML tags)
+  text = text.replace(/^(?!<[a-z/])(.*?)$/gim, (m, content) => {
+    return content.trim() ? `<p>${content}</p>` : '';
+  });
+
+  return text;
+}
+
+/* ── Copy Code to Clipboard ─────────────────────────────── */
+function copyCode(btn) {
+  const pre = btn.parentElement.querySelector('pre');
+  if (!pre) return;
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const originalText = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = originalText; }, 2000);
+  }).catch(err => {
+    console.error('Failed to copy: ', err);
+  });
+}
+
+/* ── Relative Time Helper ───────────────────────────────── */
+function formatRelativeTime(dateString) {
+  if (!dateString) return 'recently';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffSec = Math.floor((now - date) / 1000);
+
+  if (diffSec < 60) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour}h ago`;
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 30) return `${diffDay}d ago`;
+  const diffMonth = Math.floor(diffDay / 30);
+  return `${diffMonth}mo ago`;
+}
+
+function formatChunkCount(count) {
+  if (!count) return '0 chunks';
+  if (count >= 1000) {
+    return (count / 1000).toFixed(1).replace(/\.0$/, '') + 'k chunks';
+  }
+  return `${count} chunks`;
+}
+
+/* ── Client-side Validation ─────────────────────────────── */
+function isValidGitUrl(url) {
+  const pattern = /^https?:\/\/(?:www\.)?[a-zA-Z0-9_\-\.]+\/[a-zA-Z0-9_\-\.]+\/[a-zA-Z0-9_\-\.]+(?:\.git)?\/?$/;
+  return pattern.test(url.trim());
+}
+
+/* ── Stepper UI State Management ────────────────────────── */
+function updateStepperState(status, chunkCount = null, errorMsg = null) {
+  $stepperContainer.classList.add('visible');
+  hideError();
+
+  // Reset steps
+  [$step1, $step2, $step3, $step4].forEach(step => {
+    step.classList.remove('active', 'completed');
+  });
+  $step3Detail.textContent = '';
+
+  if (status === 'pending') {
+    $stepperLine.style.width = '15%';
+    $step1.classList.add('active');
+  } else if (status === 'indexing') {
+    $step1.classList.add('completed');
+    $step2.classList.add('completed');
+    $step3.classList.add('active');
+    $stepperLine.style.width = '65%';
+    if (chunkCount) {
+      $step3Detail.textContent = `${chunkCount} chunks`;
+    }
+  } else if (status === 'ready') {
+    $step1.classList.add('completed');
+    $step2.classList.add('completed');
+    $step3.classList.add('completed');
+    $step4.classList.add('completed');
+    $stepperLine.style.width = '100%';
+    if (chunkCount) {
+      $step3Detail.textContent = `${chunkCount} chunks`;
+    }
+  } else if (status === 'failed') {
+    showError(errorMsg || 'Repository indexing failed. Please verify the URL.');
+  }
+}
+
+function showError(msg) {
+  $errorText.textContent = msg;
+  $errorCard.classList.add('visible');
+}
+
+function hideError() {
+  $errorCard.classList.remove('visible');
+}
+
+/* ── Example Chips Fill ─────────────────────────────────── */
+function fillExample(url) {
+  $repoInput.value = url;
+  $repoInput.focus();
+}
+
+/* ── API Helpers ────────────────────────────────────────── */
+async function fetchApi(method, endpoint, payload = null) {
+  const options = {
+    method,
+    headers: { 'Content-Type': 'application/json' }
+  };
+  if (payload) {
+    options.body = JSON.stringify(payload);
+  }
+  const response = await fetch(endpoint, options);
+  const data = await response.json();
+  if (!response.ok) {
+    const errorDetail = data.detail || `Request failed with status ${response.status}`;
+    throw new Error(errorDetail);
+  }
+  return data;
+}
+
+/* ── Ingest Flow ────────────────────────────────────────── */
+async function handleExplainClick() {
+  const url = $repoInput.value.trim();
+  if (!url) {
+    showError("Please enter a GitHub repository URL (e.g. https://github.com/owner/repo)");
+    return;
+  }
+  if (!isValidGitUrl(url)) {
+    showError("Invalid repository link. Please enter a valid URL like https://github.com/facebook/react");
+    return;
+  }
+
+  // Reset UI
+  resetActiveView();
+  $explainBtn.disabled = true;
+  updateStepperState('pending');
+
+  try {
+    const repo = await fetchApi('POST', '/repos', { url });
+    activeRepoId = repo.id;
+    activeRepoData = repo;
+
+    if (repo.status === 'ready') {
+      updateStepperState('ready', repo.chunk_count);
+      await loadRepoOverview(repo);
+    } else if (repo.status === 'failed') {
+      updateStepperState('failed', null, repo.error_message);
+      $explainBtn.disabled = false;
+    } else {
+      updateStepperState(repo.status);
+      startPollingRepo(repo.id);
+    }
+  } catch (err) {
+    showError(err.message);
+    $explainBtn.disabled = false;
+  }
+
+  loadRecentRepos();
+}
+
+/* ── Polling Loop ───────────────────────────────────────── */
+function startPollingRepo(repoId) {
+  if (pollTimer) clearInterval(pollTimer);
+
+  pollTimer = setInterval(async () => {
+    try {
+      const repo = await fetchApi('GET', `/repos/${repoId}`);
+      activeRepoData = repo;
+
+      if (repo.status === 'ready') {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        updateStepperState('ready', repo.chunk_count);
+        await loadRepoOverview(repo);
+        loadRecentRepos();
+      } else if (repo.status === 'failed') {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        updateStepperState('failed', null, repo.error_message);
+        $explainBtn.disabled = false;
+        loadRecentRepos();
+      } else {
+        updateStepperState(repo.status, repo.chunk_count);
+      }
+    } catch (err) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+      showError(`Connection lost: ${err.message}`);
+      $explainBtn.disabled = false;
+    }
+  }, 2000);
+}
+
+/* ── Overview Generation ────────────────────────────────── */
+async function loadRepoOverview(repo) {
+  try {
+    // Generate How to Run commands based on repo URL
+    const repoName = repo.name || 'repo';
+    const folderName = repoName.split('/').pop() || 'repo';
+    $howToRunCode.textContent = `git clone ${repo.url}.git\ncd ${folderName}\n# Install dependencies and start\nnpm install && npm run dev`;
+
+    // Ask backend for overview
+    const askRes = await fetchApi('POST', `/repos/${repo.id}/ask`, {
+      question: OVERVIEW_QUESTION
+    });
+
+    $overviewBody.innerHTML = parseMarkdown(askRes.answer);
+    $overviewCard.style.display = 'block';
+
+    // Show Chat Section
+    $chatCard.style.display = 'block';
+    $chatMessages.innerHTML = '';
+    
+    // Smooth scroll to Overview
+    $overviewCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch (err) {
+    showError(`Could not generate overview: ${err.message}`);
+  } finally {
+    $explainBtn.disabled = false;
+  }
+}
+
+/* ── Chat Functionality ─────────────────────────────────── */
+async function handleChatSend() {
+  const question = $chatInput.value.trim();
+  if (!question || !activeRepoId) return;
+
+  $chatInput.value = '';
+  $chatSendBtn.disabled = true;
+
+  // 1. Add User Bubble
+  addUserMessage(question);
+
+  // 2. Add Typing Indicator Bubble
+  const typingBubble = addTypingIndicator();
+  $chatMessages.scrollTop = $chatMessages.scrollHeight;
+
+  try {
+    const res = await fetchApi('POST', `/repos/${activeRepoId}/ask`, { question });
+    typingBubble.remove();
+    addAssistantMessage(res.answer, res.citations);
+  } catch (err) {
+    typingBubble.remove();
+    addAssistantMessage(`Error: ${escapeHtml(err.message)}`, []);
+  } finally {
+    $chatSendBtn.disabled = false;
+    $chatMessages.scrollTop = $chatMessages.scrollHeight;
+  }
+}
+
+function addUserMessage(text) {
+  const row = document.createElement('div');
+  row.className = 'chat-row user-row';
+  row.innerHTML = `
+    <div class="chat-bubble user-bubble">${escapeHtml(text)}</div>
+    <div class="chat-avatar">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+      </svg>
+    </div>
+  `;
+  $chatMessages.appendChild(row);
+}
+
+function addAssistantMessage(answer, citations = []) {
+  const row = document.createElement('div');
+  row.className = 'chat-row';
+
+  let citationsHtml = '';
+  if (citations && citations.length > 0) {
+    citationsHtml = '<div class="citations-group">' + citations.map(c => `
+      <span class="citation-chip" title="${escapeHtml(c.file_path)}">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        ${escapeHtml(c.file_path)}: ${c.start_line}-${c.end_line}
+      </span>
+    `).join('') + '</div>';
+  }
+
+  row.innerHTML = `
+    <div class="chat-avatar assistant-avatar">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+      </svg>
+    </div>
+    <div class="chat-bubble assistant-bubble">
+      <div class="md-content">${parseMarkdown(answer)}</div>
+      ${citationsHtml}
+    </div>
+  `;
+  $chatMessages.appendChild(row);
+}
+
+function addTypingIndicator() {
+  const row = document.createElement('div');
+  row.className = 'chat-row';
+  row.innerHTML = `
+    <div class="chat-avatar assistant-avatar">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+      </svg>
+    </div>
+    <div class="chat-bubble assistant-bubble typing-bubble">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>
+  `;
+  $chatMessages.appendChild(row);
+  return row;
+}
+
+/* ── Recent Repos Management ────────────────────────────── */
+async function loadRecentRepos() {
+  try {
+    const repos = await fetchApi('GET', '/repos');
+    recentReposList = repos || [];
+    renderRecentRepos();
+  } catch (err) {
+    console.error('Failed to load recent repos:', err);
+    $reposGrid.innerHTML = `<div class="empty-repos-msg">Could not load recent repositories.</div>`;
+  }
+}
+
+function renderRecentRepos() {
+  if (!recentReposList || recentReposList.length === 0) {
+    $reposGrid.innerHTML = `<div class="empty-repos-msg">No repositories indexed yet. Enter a GitHub URL above to get started!</div>`;
+    return;
+  }
+
+  const displayList = showAllRecent ? recentReposList : recentReposList.slice(0, 4);
+
+  $reposGrid.innerHTML = displayList.map(repo => {
+    const statusClass = repo.status || 'indexing';
+    const statusLabel = repo.status ? (repo.status.charAt(0).toUpperCase() + repo.status.slice(1)) : 'Indexing';
+    const chunksText = formatChunkCount(repo.chunk_count);
+    const timeText = formatRelativeTime(repo.updated_at || repo.created_at);
+
+    return `
+      <div class="repo-card" onclick="selectRecentRepo(${repo.id})">
+        <div class="repo-card-left">
+          <div class="repo-gh-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          </div>
+          <div class="repo-info">
+            <div class="repo-name-text">${escapeHtml(repo.name || repo.url)}</div>
+            <div class="repo-meta-text">${chunksText} &bull; ${timeText}</div>
+          </div>
+        </div>
+        <div class="repo-card-right">
+          <span class="status-pill ${statusClass}">${statusLabel}</span>
+          <span class="repo-arrow">&rarr;</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleViewAll() {
+  showAllRecent = !showAllRecent;
+  $viewAllBtn.innerHTML = showAllRecent ? 'Show less &uarr;' : 'View all &rarr;';
+  renderRecentRepos();
+}
+
+async function selectRecentRepo(repoId) {
+  const repo = recentReposList.find(r => r.id === repoId);
+  if (!repo) return;
+
+  resetActiveView();
+  $repoInput.value = repo.url;
+  activeRepoId = repo.id;
+  activeRepoData = repo;
+
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (repo.status === 'ready') {
+    updateStepperState('ready', repo.chunk_count);
+    await loadRepoOverview(repo);
+  } else if (repo.status === 'failed') {
+    updateStepperState('failed', null, repo.error_message || 'Indexing failed');
+  } else {
+    updateStepperState(repo.status, repo.chunk_count);
+    startPollingRepo(repo.id);
+  }
+}
+
+/* ── Reset View State ───────────────────────────────────── */
+function resetActiveView() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+  hideError();
+  $overviewCard.style.display = 'none';
+  $chatCard.style.display = 'none';
+  $chatMessages.innerHTML = '';
+  $overviewBody.innerHTML = '';
+}
+
+/* ── Init ───────────────────────────────────────────────── */
+loadRecentRepos();
+</script>
+</body>
+</html>
