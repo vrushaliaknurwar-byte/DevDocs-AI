@@ -42,9 +42,23 @@ SUPPORTED_EXTENSIONS = {
 }
 
 
+def get_dir_size_bytes(directory: str) -> int:
+    """Calculate the total size in bytes of all files in a directory."""
+    total_size = 0
+    for root, _, files in os.walk(directory):
+        for f in files:
+            fp = os.path.join(root, f)
+            try:
+                total_size += os.path.getsize(fp)
+            except OSError:
+                pass
+    return total_size
+
+
 def clone_repository(repo_url: str, target_dir: str) -> None:
     """
     Perform a shallow clone of a git repository (depth=1).
+    Validates that the repository size is within MAX_REPO_SIZE_MB limit.
     Raises RuntimeError on failure with a sanitized descriptive error.
     """
     logger.info(f"Cloning repository {repo_url} into {target_dir} (shallow clone)")
@@ -73,6 +87,19 @@ def clone_repository(repo_url: str, target_dir: str) -> None:
             logger.error(f"Git clone failed for {repo_url}: {err_msg}")
             raise RuntimeError(f"Git clone failed: {err_msg}")
         logger.info(f"Successfully cloned {repo_url}")
+
+        # Check repository size against MAX_REPO_SIZE_MB limit
+        total_bytes = get_dir_size_bytes(target_dir)
+        max_bytes = settings.MAX_REPO_SIZE_MB * 1024 * 1024
+        if total_bytes > max_bytes:
+            size_mb = total_bytes / (1024 * 1024)
+            logger.error(
+                f"Repository {repo_url} size ({size_mb:.1f} MB) exceeds limit ({settings.MAX_REPO_SIZE_MB} MB)"
+            )
+            raise RuntimeError(
+                f"Repository size ({size_mb:.1f} MB) exceeds maximum allowed limit of {settings.MAX_REPO_SIZE_MB} MB"
+            )
+
     except subprocess.TimeoutExpired:
         logger.error(f"Git clone timed out after {settings.CLONE_TIMEOUT_SECONDS}s for {repo_url}")
         raise RuntimeError(f"Repository clone timed out after {settings.CLONE_TIMEOUT_SECONDS} seconds")

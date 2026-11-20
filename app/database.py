@@ -1,3 +1,4 @@
+import time
 import logging
 from typing import Generator
 from sqlalchemy import create_engine, text
@@ -7,8 +8,10 @@ from app.config import get_settings
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-# Normalize database URL to use psycopg2 if a bare postgresql:// driver is provided
+# Normalize database URL
 db_url = settings.DATABASE_URL
+if db_url.startswith("postgres://"):
+    db_url = "postgresql://" + db_url[len("postgres://"):]
 if db_url.startswith("postgresql://"):
     db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
@@ -37,19 +40,35 @@ def get_db() -> Generator[Session, None, None]:
         db.close()
 
 
-def init_db() -> None:
-    """Initialize database schemas and extensions."""
-    # If using PostgreSQL, ensure pgvector extension exists
-    if engine.dialect.name == "postgresql":
+def init_db(max_wait_seconds: int = 30) -> None:
+    """
+    Initialize database schemas and extensions with retry logic.
+    Retries connecting for up to max_wait_seconds before failing.
+    """
+    start_time = time.time()
+    retry_delay = 2.0
+    last_exception = None
+
+    while time.time() - start_time < max_wait_seconds:
         try:
             with engine.connect() as conn:
-                conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
-                conn.commit()
-                logger.info("Ensured PostgreSQL vector extension exists.")
-        except Exception as e:
-            logger.warning(f"Could not enable vector extension automatically: {e}")
+                if engine.dialect.name == "postgresql":
+                    conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+                    conn.commit()
+                    logger.info("Ensured PostgreSQL vector extension exists.")
 
-    # Import models so Base has them registered
-    import app.models  # noqa: F401
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables verified/created successfully.")
+            # Import models so Base has them registered
+            import app.models  # noqa: F401
+            Base.metadata.create_all(bind=engine)
+            logger.info("Database tables verified/created successfully.")
+            return
+        except Exception as e:
+            last_exception = e
+            elapsed = int(time.time() - start_time)
+            logger.warning(
+                f"Database connection attempt failed ({elapsed}s/{max_wait_seconds}s): {e}. Retrying in {retry_delay}s..."
+            )
+            time.sleep(retry_delay)
+
+    logger.error(f"Failed to connect to and initialize database after {max_wait_seconds} seconds: {last_exception}")
+    raise RuntimeError(f"Database initialization failed after {max_wait_seconds} seconds: {last_exception}")

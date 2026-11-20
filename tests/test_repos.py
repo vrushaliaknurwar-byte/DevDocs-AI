@@ -67,3 +67,49 @@ def test_get_repos_list(client, db_session):
     assert repo_map["fastapi/fastapi"]["chunk_count"] == 1
     assert repo_map["encode/uvicorn"]["status"] == "indexing"
     assert repo_map["encode/uvicorn"]["chunk_count"] == 0
+
+
+def test_post_repos_rate_limiting(client):
+    # 5 requests should succeed (status 202)
+    for i in range(5):
+        res = client.post(
+            "/repos",
+            json={"url": f"https://github.com/org/repo-{i}"}
+        )
+        assert res.status_code == 202
+
+    # 6th request from the same client IP should trigger 429
+    res6 = client.post(
+        "/repos",
+        json={"url": "https://github.com/org/repo-overflow"}
+    )
+    assert res6.status_code == 429
+    assert "Rate limit exceeded" in res6.json()["detail"]
+    assert "Retry-After" in res6.headers
+
+
+def test_repo_size_limit_rejection(monkeypatch, tmp_path):
+    import os
+    from app.services.repo_cloner import clone_repository
+    from app.config import get_settings
+
+    settings = get_settings()
+    # Mock subprocess.run to succeed
+    class MockResult:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: MockResult())
+
+    # Create a dummy large file exceeding MAX_REPO_SIZE_MB
+    target_dir = str(tmp_path)
+    large_file = os.path.join(target_dir, "large.bin")
+    # Simulate directory size larger than limit
+    monkeypatch.setattr("app.services.repo_cloner.get_dir_size_bytes", lambda d: (settings.MAX_REPO_SIZE_MB + 1) * 1024 * 1024)
+
+    import pytest
+    with pytest.raises(RuntimeError) as exc_info:
+        clone_repository("https://github.com/org/huge-repo", target_dir)
+
+    assert "exceeds maximum allowed limit" in str(exc_info.value)

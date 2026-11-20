@@ -22,12 +22,9 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: ensure tables and pgvector extension are created
+    # Startup: ensure tables and pgvector extension are created with up to 30s retry
     logger.info("Initializing DevDocs AI database tables and extensions...")
-    try:
-        init_db()
-    except Exception as e:
-        logger.error(f"Error during database startup initialization: {e}")
+    init_db(max_wait_seconds=30)
     yield
     # Shutdown
     logger.info("Shutting down DevDocs AI application.")

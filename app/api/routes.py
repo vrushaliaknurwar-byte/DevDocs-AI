@@ -2,7 +2,7 @@ import re
 import logging
 from typing import List
 from urllib.parse import urlparse
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Request, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
@@ -13,6 +13,7 @@ from app.schemas.repository import RepoCreate, RepoResponse
 from app.schemas.ask import AskRequest, AskResponse
 from app.services.indexer_service import process_repository_indexing
 from app.services.search_service import answer_repo_question
+from app.services.rate_limiter import rate_limit_repos, rate_limit_ask
 
 logger = logging.getLogger(__name__)
 
@@ -41,15 +42,20 @@ def _extract_repo_name(url: str) -> str:
 )
 def create_repository(
     repo_in: RepoCreate,
+    http_request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
     Ingest a GitHub repository:
     1. Validates repository URL.
-    2. Initializes repository record with status 'pending'.
-    3. Queues shallow clone, parsing (AST/Tree-sitter), embedding, and pgvector storage.
+    2. Applies per-IP rate limiting (5 per hour).
+    3. Initializes repository record with status 'pending'.
+    4. Queues shallow clone, size checking, parsing, embedding, and pgvector storage.
     """
+    # Enforce per-IP rate limit for repository ingestion
+    rate_limit_repos(http_request)
+
     repo_name = _extract_repo_name(repo_in.url)
 
     # Check if this repository was already ingested
@@ -134,24 +140,30 @@ def get_repository(repo_id: int, db: Session = Depends(get_db)):
 )
 def ask_repository(
     repo_id: int,
-    request: AskRequest,
+    request_body: AskRequest,
+    http_request: Request,
     db: Session = Depends(get_db)
 ):
     """
     Codebase Q&A:
-    1. Embeds the user's question with the Gemini embedding model.
-    2. Retrieves top 5 most similar code chunks using pgvector cosine distance.
-    3. Calls Gemini chat/generation model to synthesize an answer.
-    4. Returns the answer and citations (file path, line range) as JSON.
+    1. Validates non-empty question.
+    2. Applies per-IP rate limiting (30 per hour).
+    3. Embeds the user's question with the Gemini embedding model.
+    4. Retrieves top 5 most similar code chunks using pgvector cosine distance.
+    5. Calls Gemini chat/generation model to synthesize an answer.
+    6. Returns the answer and citations (file path, line range) as JSON.
     """
-    if not request.question.strip():
+    if not request_body.question.strip():
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Question cannot be empty"
         )
 
+    # Enforce per-IP rate limit for repository queries
+    rate_limit_ask(http_request)
+
     try:
-        answer, citations = answer_repo_question(repo_id, request.question, db)
+        answer, citations = answer_repo_question(repo_id, request_body.question, db)
         return AskResponse(answer=answer, citations=citations)
     except ValueError as e:
         raise HTTPException(

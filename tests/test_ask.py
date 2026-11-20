@@ -148,3 +148,30 @@ def test_ask_gemini_api_failure_returns_502(client, db_session, monkeypatch):
     )
     assert response.status_code == 502
     assert "Upstream AI service error" in response.json()["detail"]
+
+
+def test_ask_rate_limiting(client, db_session):
+    repo = Repository(
+        url="https://github.com/owner/rate-limit-repo",
+        name="owner/rate-limit-repo",
+        status="ready"
+    )
+    db_session.add(repo)
+    db_session.commit()
+
+    # 30 ask requests should succeed (status 200)
+    for i in range(30):
+        res = client.post(
+            f"/repos/{repo.id}/ask",
+            json={"question": f"Question {i}?"}
+        )
+        assert res.status_code == 200
+
+    # 31st ask request should trigger 429
+    res31 = client.post(
+        f"/repos/{repo.id}/ask",
+        json={"question": "Question 31 exceeding limit?"}
+    )
+    assert res31.status_code == 429
+    assert "Rate limit exceeded" in res31.json()["detail"]
+    assert "Retry-After" in res31.headers

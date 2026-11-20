@@ -149,6 +149,46 @@ Open **[http://localhost:8000](http://localhost:8000)** in your browser. The red
 
 ---
 
+## Deploy on Render
+
+DevDocs AI is configured for deployment on [Render](https://render.com) as a containerized **Docker Web Service** with PostgreSQL + `pgvector`.
+
+### 1. Create PostgreSQL Database with pgvector
+1. In the Render Dashboard, click **New +** &rarr; **PostgreSQL**.
+2. Give your database a name (e.g. `devdocs-db`), choose a region, and click **Create Database**.
+3. Once provisioned, copy the **Internal Database URL** (for lowest latency within Render) or **External Database URL**.
+   > *Note:* Render database URLs starting with `postgres://` are automatically normalized to `postgresql://` by DevDocs AI at runtime.
+
+### 2. Deploy Web Service
+1. Click **New +** &rarr; **Web Service** &rarr; connect your GitHub repository.
+2. Select **Docker** as the runtime. Render will automatically build and run the included `Dockerfile`.
+3. In **Advanced Settings**, set **Health Check Path** to `/health`.
+4. Add the required environment variables below and click **Deploy Web Service**.
+
+### 3. Environment Variables Reference
+
+All runtime configuration is read directly from environment variables:
+
+| Variable | Required | Default | Description |
+| :--- | :---: | :--- | :--- |
+| `DATABASE_URL` | **Yes** | — | PostgreSQL connection string. `postgres://` is automatically converted. |
+| `GEMINI_API_KEY` | **Yes** | — | Gemini API key from [Google AI Studio](https://aistudio.google.com). |
+| `PORT` | Auto | `8000` | Port for uvicorn to bind (Render sets this automatically). |
+| `EMBEDDING_MODEL` | No | `gemini-embedding-001` | Model name for vector embeddings. |
+| `GENERATION_MODEL` | No | `gemini-3.5-flash` | Model name for answer synthesis. |
+| `EMBEDDING_DIMENSIONS` | No | `768` | Embedding vector dimensions (matches pgvector schema). |
+| `APP_ENV` | No | `production` | Deployment environment (`production` or `development`). |
+| `MAX_REPO_SIZE_MB` | No | `50` | Maximum allowed repository size in MB to protect disk & memory. |
+| `RATE_LIMIT_REPOS_PER_HOUR` | No | `5` | Per-IP limit on `POST /repos` ingestions per hour. |
+| `RATE_LIMIT_ASK_PER_HOUR` | No | `30` | Per-IP limit on `POST /repos/{id}/ask` questions per hour. |
+
+### 4. Automatic Startup Migrations & Retries
+- On startup, the service executes `CREATE EXTENSION IF NOT EXISTS vector;` and creates all required tables.
+- If the database is still warming up during cold starts, the application automatically retries the connection for up to **30 seconds** before failing.
+- Render pings `/health` to verify that the service is ready to receive traffic.
+
+---
+
 ## Local Development (Without Docker)
 
 ### 1. Create Virtual Environment

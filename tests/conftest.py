@@ -8,6 +8,7 @@ from sqlalchemy.pool import StaticPool
 from app.database import Base, get_db
 from app.main import app
 from app.services.gemini_service import gemini_service
+from app.services.rate_limiter import limiter
 from app.models.repository import Repository
 from app.models.code_chunk import CodeChunk
 
@@ -20,6 +21,19 @@ test_engine = create_engine(
     poolclass=StaticPool
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+# Ensure app.database engine uses test_engine during tests so startup lifespan initializes test DB
+import app.database as app_db
+app_db.engine = test_engine
+app_db.SessionLocal = TestingSessionLocal
+
+
+@pytest.fixture(scope="function", autouse=True)
+def reset_rate_limit():
+    """Reset rate limiter state before and after each test."""
+    limiter.reset()
+    yield
+    limiter.reset()
 
 
 @pytest.fixture(scope="function")
